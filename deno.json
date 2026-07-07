@@ -1,0 +1,16 @@
+{
+  "tasks": {
+    "dev": "deno run -A --watch=server/ server/server.ts",
+    "start": "deno run -A server/server.ts",
+    "check": "deno check server/"
+  },
+  "nodeModulesDir": "auto",
+  "imports": {
+    "hono": "npm:hono@^4.6.16",
+    "hono/deno": "npm:hono@^4.6.16/deno"
+  },
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true
+  }
+}
