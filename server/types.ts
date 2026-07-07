@@ -5,6 +5,10 @@
 export type Plug = {
   id: string;
   name: string;
+  /** Human-readable note shown under the plug name. */
+  description?: string;
+  /** Where the plug lives, e.g. a room name. */
+  location?: string;
   on: boolean;
   /** When true, state is still being fetched — show a spinner. */
   loading: boolean;

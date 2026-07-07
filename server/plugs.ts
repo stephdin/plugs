@@ -10,6 +10,8 @@ import { log } from "./log.ts";
 type PlugConfig = {
   id: string;
   name: string;
+  description?: string;
+  location?: string;
   driver: Driver;
   readOnly?: boolean;
 };
@@ -29,6 +31,8 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
   let state: Plug[] = configs.map((c) => ({
     id: c.id,
     name: c.name,
+    description: c.description,
+    location: c.location,
     on: false,
     loading: true,
     offline: false,

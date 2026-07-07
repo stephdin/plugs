@@ -22,6 +22,8 @@ const registry = createPlugRegistry([
   {
     id: "0",
     name: "Ventilator",
+    description: "Standlüfter im Arbeitszimmer",
+    location: "Büro",
     readOnly: false,
     driver: createShellyGen2Driver({
       kind: "shelly.gen2",
@@ -32,6 +34,8 @@ const registry = createPlugRegistry([
   {
     id: "1",
     name: "Kühlschrank",
+    description: "Nie ausschalten — Lebensmittel!",
+    location: "Küche",
     readOnly: false,
     driver: createShellyGen2Driver({
       kind: "shelly.gen2",

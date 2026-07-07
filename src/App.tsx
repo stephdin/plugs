@@ -36,7 +36,9 @@ export default function App() {
       <AppShell.Header p="sm">
         <Group justify="space-between" wrap="nowrap" h="100%">
           {/* Left: live total power draw. */}
-          <Box style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+          <Box
+            style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}
+          >
             <Group gap={6} wrap="nowrap">
               <Text size="sm" fw={600}>
                 Σ
@@ -75,21 +77,36 @@ export default function App() {
                 >
                   <Group justify="space-between" align="center" wrap="nowrap">
                     <Stack gap={4} style={{ minWidth: 0 }}>
-                      <Text size="md" fw={600} truncate>
-                        {p.name}
-                      </Text>
+                      <Group gap="xs" wrap="nowrap" align="center">
+                        <Text size="md" fw={600} truncate>
+                          {p.name}
+                        </Text>
+                        {/* {p.location && (
+                          <Badge color="gray" variant="light" size="sm">
+                            {p.location}
+                          </Badge>
+                        )} */}
+                      </Group>
                       <Group gap="xs" wrap="nowrap">
                         <Text size="sm" c="dimmed">
                           {statusText(p)}
                         </Text>
-
                       </Group>
+                      {p.description && (
+                        <Text size="xs" c="dimmed" truncate>
+                          {p.description}
+                        </Text>
+                      )}
                     </Stack>
 
                     {p.loading ? (
                       <Loader size="sm" m="sm" color="white" />
                     ) : p.readOnly ? (
-                      <Badge color={p.on ? "blue.8" : "gray"} variant="light" size="lg">
+                      <Badge
+                        color={p.on ? "blue.8" : "gray"}
+                        variant="light"
+                        size="lg"
+                      >
                         {p.on ? "An" : "Aus"}
                       </Badge>
                     ) : (
