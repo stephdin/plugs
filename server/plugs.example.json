@@ -1,0 +1,61 @@
+[
+  {
+    "id": "0",
+    "name": "Kühlschrank",
+    "description": "Nie ausschalten — Lebensmittel!",
+    "readOnly": false,
+    "confirm": true,
+    "driver": {
+      "kind": "shelly.gen2",
+      "host": "192.168.2.166",
+      "id": 0
+    }
+  },
+  {
+    "id": "1",
+    "name": "Ventilator",
+    "description": "Standlüfter im Arbeitszimmer",
+    "readOnly": false,
+    "confirm": false,
+    "driver": {
+      "kind": "shelly.gen2",
+      "host": "192.168.2.167",
+      "id": 0
+    }
+  },
+  {
+    "id": "2",
+    "name": "Schreibtischlampe",
+    "description": "Wohnzimmer, links vom Sofa",
+    "readOnly": false,
+    "confirm": false,
+    "driver": {
+      "kind": "shelly.gen1",
+      "host": "192.168.2.51",
+      "id": 0
+    }
+  },
+  {
+    "id": "3",
+    "name": "NAS",
+    "description": "Backup-Server — nicht ausschalten",
+    "readOnly": true,
+    "confirm": false,
+    "driver": {
+      "kind": "shelly.gen2",
+      "host": "192.168.2.52",
+      "id": 0
+    }
+  },
+  {
+    "id": "4",
+    "name": "Kaffeemaschine",
+    "readOnly": false,
+    "confirm": false,
+    "driver": {
+      "kind": "shelly.gen1",
+      "host": "192.168.2.53",
+      "id": 0
+    }
+  }
+]

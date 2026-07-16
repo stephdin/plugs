@@ -2,8 +2,8 @@
 // `state` messages whenever the registry changes; clients send `toggle`
 // intents back. Multiple connected clients all receive the same broadcasts.
 
-import type { Registry } from "./plugs.ts";
-import type { ClientMessage, ServerMessage } from "./types.ts";
+import type { Registry } from "./registry.ts";
+import type { ClientMessage, ServerMessage } from "../../shared/types.ts";
 import { log } from "./log.ts";
 
 // Decoupled socket shape — Deno's ServerWebSocket satisfies this, but

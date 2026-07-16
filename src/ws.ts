@@ -4,7 +4,7 @@
 // in as `state` messages and surface as `plugs`.
 
 import { useEffect, useRef, useState } from "react";
-import type { ClientMessage, Plug, ServerMessage } from "./types.ts";
+import type { ClientMessage, Plug, ServerMessage } from "../shared/types";
 
 const RECONNECT_DELAY_MS = 2000;
 

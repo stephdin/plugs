@@ -1,31 +1,39 @@
+import { useState } from "react";
 import {
-  ActionIcon,
   AppShell,
   Badge,
-  Box,
+  Button,
   Card,
   Container,
   Group,
   Loader,
+  Modal,
   ScrollArea,
   Stack,
   Switch,
   Text,
 } from "@mantine/core";
-import { IconSettings } from "@tabler/icons-react";
 
-import type { Plug } from "./types.ts";
+import type { Plug } from "../shared/types.ts";
 import { usePlugsWebSocket } from "./ws.ts";
+
+function formatWatts(w: number): string {
+  return Math.round(w).toLocaleString("de-DE");
+}
 
 function statusText(p: Plug): string {
   if (p.loading) return "Lädt…";
   if (p.offline) return "Nicht erreichbar";
-  if (p.on) return `${p.activeWatts.toFixed(1)} W`;
+  if (p.on) return `${formatWatts(p.activeWatts)} W`;
   return "Aus";
 }
 
 export default function App() {
   const { plugs, toggle } = usePlugsWebSocket();
+  const [confirmTarget, setConfirmTarget] = useState<Pick<
+    Plug,
+    "id" | "name" | "on"
+  > | null>(null);
 
   const totalWatts = plugs
     .filter((p) => p.on)
@@ -33,33 +41,15 @@ export default function App() {
 
   return (
     <AppShell header={{ height: 60 }} padding="sm">
-      <AppShell.Header p="sm">
-        <Group justify="space-between" wrap="nowrap" h="100%">
-          {/* Left: live total power draw. */}
-          <Box
-            style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}
-          >
-            <Group gap={6} wrap="nowrap">
-              <Text size="sm" fw={600}>
-                Σ
-              </Text>
-              <Text size="sm" fw={600}>
-                {totalWatts.toFixed(0)} W
-              </Text>
-            </Group>
-          </Box>
-
-          {/* Center: title */}
+      <AppShell.Header p="md">
+        <Group justify="space-between" align="center" wrap="nowrap">
           <Text size="lg" fw={700}>
-            Plugs
+            Zuhause
           </Text>
 
-          {/* Right: settings */}
-          <Box style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-            <ActionIcon variant="subtle" color="gray" size="lg">
-              <IconSettings size={20} />
-            </ActionIcon>
-          </Box>
+          <Text size="md" fw={600} truncate>
+            Gesamt {formatWatts(totalWatts)} W
+          </Text>
         </Group>
       </AppShell.Header>
 
@@ -77,33 +67,26 @@ export default function App() {
                 >
                   <Group justify="space-between" align="center" wrap="nowrap">
                     <Stack gap={4} style={{ minWidth: 0 }}>
-                      <Group gap="xs" wrap="nowrap" align="center">
-                        <Text size="md" fw={600} truncate>
-                          {p.name}
-                        </Text>
-                        {/* {p.location && (
-                          <Badge color="gray" variant="light" size="sm">
-                            {p.location}
-                          </Badge>
-                        )} */}
-                      </Group>
-                      <Group gap="xs" wrap="nowrap">
-                        <Text size="sm" c="dimmed">
-                          {statusText(p)}
-                        </Text>
-                      </Group>
+                      <Text size="md" fw={600} truncate>
+                        {p.name}
+                      </Text>
+
                       {p.description && (
                         <Text size="xs" c="dimmed" truncate>
                           {p.description}
                         </Text>
                       )}
+
+                      <Text size="sm" c="dimmed">
+                        {statusText(p)}
+                      </Text>
                     </Stack>
 
                     {p.loading ? (
                       <Loader size="sm" m="sm" color="white" />
                     ) : p.readOnly ? (
                       <Badge
-                        color={p.on ? "blue.8" : "gray"}
+                        color={p.on ? "blue.8" : "grey"}
                         variant="light"
                         size="lg"
                       >
@@ -114,7 +97,17 @@ export default function App() {
                         size="md"
                         checked={p.on}
                         disabled={p.offline}
-                        onChange={() => toggle(p.id)}
+                        onChange={() => {
+                          if (p.confirm) {
+                            setConfirmTarget({
+                              id: p.id,
+                              name: p.name,
+                              on: p.on,
+                            });
+                          } else {
+                            toggle(p.id);
+                          }
+                        }}
                       />
                     )}
                   </Group>
@@ -124,6 +117,33 @@ export default function App() {
           </Container>
         </ScrollArea>
       </AppShell.Main>
+
+      <Modal
+        opened={!!confirmTarget}
+        onClose={() => setConfirmTarget(null)}
+        title={`${confirmTarget?.name ?? "Plug"} ${confirmTarget?.on ? "ausschalten" : "einschalten"}`}
+        centered
+      >
+        <Text size="sm">
+          Bist du sicher, dass du{" "}
+          <strong>{confirmTarget?.name ?? "Plug"}</strong>{" "}
+          {confirmTarget?.on ? "ausschalten" : "einschalten"} möchtest?
+        </Text>
+        <Group justify="flex-end" mt="md">
+          <Button variant="default" onClick={() => setConfirmTarget(null)}>
+            Abbrechen
+          </Button>
+          <Button
+            color={confirmTarget?.on ? "red" : "blue"}
+            onClick={() => {
+              if (confirmTarget) toggle(confirmTarget.id);
+              setConfirmTarget(null);
+            }}
+          >
+            Bestätigen
+          </Button>
+        </Group>
+      </Modal>
     </AppShell>
   );
 }

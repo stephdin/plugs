@@ -3,17 +3,17 @@
 // toggle intents from connected clients. This is the single source of truth
 // for the UI — clients never talk to plugs directly.
 
-import type { Plug } from "./types.ts";
-import type { Driver } from "./shelly.ts";
+import type { Plug } from "../../shared/types.ts";
+import type { Driver } from "../drivers/types.ts";
 import { log } from "./log.ts";
 
 type PlugConfig = {
   id: string;
   name: string;
   description?: string;
-  location?: string;
   driver: Driver;
   readOnly?: boolean;
+  confirm?: boolean;
 };
 
 export type Registry = {
@@ -32,15 +32,17 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
     id: c.id,
     name: c.name,
     description: c.description,
-    location: c.location,
     on: false,
     loading: true,
     offline: false,
     activeWatts: 0,
     readOnly: c.readOnly ?? false,
+    confirm: c.confirm,
   }));
 
   const subscribers = new Set<(plugs: Plug[]) => void>();
+  // Ids of plugs whose poll is still in flight. Used to skip re-entrant polls.
+  const inFlight = new Set<string>();
   const notify = () => {
     for (const fn of subscribers) fn(state);
   };
@@ -50,6 +52,11 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
   };
 
   const poll = async (c: PlugConfig) => {
+    // Skip if a previous poll for this plug hasn't returned yet (e.g. a slow
+    // or hung device). Without this, overlapping polls resolve out of order
+    // when the device comes back, flapping offline/on and on/off.
+    if (inFlight.has(c.id)) return;
+    inFlight.add(c.id);
     try {
       const status = await c.driver.fetchStatus();
       const wasOffline = state.find((p) => p.id === c.id)?.offline;
@@ -61,8 +68,16 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
       patch(c.id, { loading: false, offline: true });
       // Only log the first failure of a streak to avoid spamming every poll.
       if (!wasOffline) {
-        log("warn", "plug", `"${c.name}" unreachable: ${e instanceof Error ? e.message : String(e)}`);
+        log(
+          "warn",
+          "plug",
+          `"${c.name}" unreachable: ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
       }
+    } finally {
+      inFlight.delete(c.id);
     }
   };
 
@@ -78,8 +93,9 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
         current.loading ||
         current.offline ||
         current.readOnly
-      )
+      ) {
         return;
+      }
 
       const next = !current.on;
       log("info", "plug", `toggle "${current.name}" → ${next ? "on" : "off"}`);
@@ -89,7 +105,13 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
       try {
         await cfg.driver.setOutput(next);
       } catch (e) {
-        log("warn", "plug", `toggle failed for "${current.name}": ${e instanceof Error ? e.message : String(e)}`);
+        log(
+          "warn",
+          "plug",
+          `toggle failed for "${current.name}": ${
+            e instanceof Error ? e.message : String(e)
+          }`,
+        );
         // Revert on failure and mark unreachable; poll will retry.
         patch(id, { on: !next, offline: true });
       }

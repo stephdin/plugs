@@ -1,10 +1,9 @@
 {
   "tasks": {
-    "dev": "deno run -A --watch=server/ server/server.ts",
-    "start": "deno run -A server/server.ts",
-    "check": "deno check server/"
+    "dev": "deno run -A --watch=. main.ts",
+    "start": "deno run -A main.ts",
+    "check": "deno check ."
   },
-  "nodeModulesDir": "auto",
   "imports": {
     "hono": "npm:hono@^4.6.16",
     "hono/deno": "npm:hono@^4.6.16/deno"
