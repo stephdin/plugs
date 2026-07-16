@@ -52,6 +52,7 @@ const registry = createPlugRegistry(
   plugConfigs.map((c) => ({
     ...c,
     driver: createDriver(c.driver),
+    host: c.driver.host,
   })),
 );
 registry.start();

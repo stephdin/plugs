@@ -13,6 +13,7 @@ import {
   Switch,
   Text,
 } from "@mantine/core";
+import { useLongPress } from "@mantine/hooks";
 
 import type { Plug } from "../shared/types.ts";
 import { usePlugsWebSocket } from "./ws.ts";
@@ -26,6 +27,66 @@ function statusText(p: Plug): string {
   if (p.offline) return "Nicht erreichbar";
   if (p.on) return `${formatWatts(p.activeWatts)} W`;
   return "Aus";
+}
+
+function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
+  const longPressHandlers = useLongPress(
+    () => {
+      if (plug.host) window.open(`http://${plug.host}`, "_blank");
+    },
+    { threshold: 600, cancelOnMove: true },
+  );
+
+  return (
+    <Card
+      withBorder
+      padding="md"
+      radius="md"
+      opacity={plug.offline || plug.loading ? 0.6 : 1}
+    >
+      <Group justify="space-between" align="center" wrap="nowrap">
+        <div
+          {...(plug.host ? longPressHandlers : {})}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            cursor: "default",
+          }}
+        >
+          <Stack gap={4}>
+            <Text size="md" fw={600} truncate>
+              {plug.name}
+            </Text>
+
+            {plug.description && (
+              <Text size="xs" c="dimmed" truncate>
+                {plug.description}
+              </Text>
+            )}
+
+            <Text size="sm" c="dimmed">
+              {statusText(plug)}
+            </Text>
+          </Stack>
+        </div>
+
+        {plug.loading ? (
+          <Loader size="sm" m="sm" color="white" />
+        ) : plug.readOnly ? (
+          <Badge color={plug.on ? "blue.8" : "grey"} variant="light" size="lg">
+            {plug.on ? "An" : "Aus"}
+          </Badge>
+        ) : (
+          <Switch
+            size="md"
+            checked={plug.on}
+            disabled={plug.offline}
+            onChange={onToggle}
+          />
+        )}
+      </Group>
+    </Card>
+  );
 }
 
 export default function App() {
@@ -58,60 +119,21 @@ export default function App() {
           <Container size="xs" p={0}>
             <Stack gap="sm">
               {plugs.map((p) => (
-                <Card
+                <PlugCard
                   key={p.id}
-                  withBorder
-                  padding="md"
-                  radius="md"
-                  opacity={p.offline || p.loading ? 0.6 : 1}
-                >
-                  <Group justify="space-between" align="center" wrap="nowrap">
-                    <Stack gap={4} style={{ minWidth: 0 }}>
-                      <Text size="md" fw={600} truncate>
-                        {p.name}
-                      </Text>
-
-                      {p.description && (
-                        <Text size="xs" c="dimmed" truncate>
-                          {p.description}
-                        </Text>
-                      )}
-
-                      <Text size="sm" c="dimmed">
-                        {statusText(p)}
-                      </Text>
-                    </Stack>
-
-                    {p.loading ? (
-                      <Loader size="sm" m="sm" color="white" />
-                    ) : p.readOnly ? (
-                      <Badge
-                        color={p.on ? "blue.8" : "grey"}
-                        variant="light"
-                        size="lg"
-                      >
-                        {p.on ? "An" : "Aus"}
-                      </Badge>
-                    ) : (
-                      <Switch
-                        size="md"
-                        checked={p.on}
-                        disabled={p.offline}
-                        onChange={() => {
-                          if (p.confirm) {
-                            setConfirmTarget({
-                              id: p.id,
-                              name: p.name,
-                              on: p.on,
-                            });
-                          } else {
-                            toggle(p.id);
-                          }
-                        }}
-                      />
-                    )}
-                  </Group>
-                </Card>
+                  plug={p}
+                  onToggle={() => {
+                    if (p.confirm) {
+                      setConfirmTarget({
+                        id: p.id,
+                        name: p.name,
+                        on: p.on,
+                      });
+                    } else {
+                      toggle(p.id);
+                    }
+                  }}
+                />
               ))}
             </Stack>
           </Container>

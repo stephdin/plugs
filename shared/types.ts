@@ -11,6 +11,8 @@ export type Plug = {
   activeWatts: number;
   readOnly: boolean;
   confirm?: boolean;
+  /** IP / hostname of the physical device. Used by the UI to deep-link to the Shelly web UI. */
+  host?: string;
 };
 
 // Server → Client

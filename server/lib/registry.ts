@@ -14,6 +14,7 @@ type PlugConfig = {
   driver: Driver;
   readOnly?: boolean;
   confirm?: boolean;
+  host: string;
 };
 
 export type Registry = {
@@ -38,6 +39,7 @@ export function createPlugRegistry(configs: PlugConfig[]): Registry {
     activeWatts: 0,
     readOnly: c.readOnly ?? false,
     confirm: c.confirm,
+    host: c.host,
   }));
 
   const subscribers = new Set<(plugs: Plug[]) => void>();
