@@ -14,10 +14,14 @@ interface WebSocketLike {
     listener: (e: { data?: unknown }) => void,
   ): void;
   send(data: string): void;
+  readyState: number;
 }
 
 export function handleWebSocket(socket: WebSocketLike, registry: Registry) {
+  let unsubscribed = false;
+
   const send = (msg: ServerMessage) => {
+    if (unsubscribed) return;
     try {
       socket.send(JSON.stringify(msg));
     } catch {
@@ -25,16 +29,22 @@ export function handleWebSocket(socket: WebSocketLike, registry: Registry) {
     }
   };
 
-  // Fresh snapshot on connect.
-  socket.addEventListener("open", () => {
-    log("info", "ws", "client connected");
-    send({ type: "state", plugs: registry.getState() });
-  });
-
-  // Forward all subsequent state changes to this client.
+  // Subscribe to state changes immediately so no poll update is missed.
   const unsubscribe = registry.subscribe((plugs) => {
     send({ type: "state", plugs });
   });
+
+  // Send the initial state snapshot.  If the socket is already OPEN (the
+  // common case in Deno) send right away; otherwise wait for the open event.
+  if (socket.readyState === 1 /* WebSocket.OPEN */) {
+    log("info", "ws", "client connected (immediate)");
+    send({ type: "state", plugs: registry.getState() });
+  } else {
+    socket.addEventListener("open", () => {
+      log("info", "ws", "client connected");
+      send({ type: "state", plugs: registry.getState() });
+    });
+  }
 
   // Receive toggle intents.
   socket.addEventListener("message", async (e) => {
@@ -54,6 +64,8 @@ export function handleWebSocket(socket: WebSocketLike, registry: Registry) {
 
   // Detach on close / error so we don't broadcast to dead sockets.
   const cleanup = () => {
+    if (unsubscribed) return;
+    unsubscribed = true;
     log("info", "ws", "client disconnected");
     unsubscribe();
   };
