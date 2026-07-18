@@ -48,13 +48,17 @@ export function handleWebSocket(socket: WebSocketLike, registry: Registry) {
 
   // Receive toggle intents.
   socket.addEventListener("message", async (e) => {
+    if (typeof e.data !== "string") return;
     let msg: ClientMessage;
     try {
-      if (typeof e.data !== "string") return;
       msg = JSON.parse(e.data) as ClientMessage;
     } catch {
       return;
     }
+    // Guard against valid-JSON-but-wrong-shape payloads (e.g. `null` or a
+    // bare number) — without this, `msg.type` would throw synchronously
+    // and surface as an unhandled promise rejection.
+    if (!msg || typeof msg !== "object") return;
     switch (msg.type) {
       case "toggle":
         await registry.toggle(msg.id);

@@ -44,7 +44,10 @@ export function createShellyGen1Driver(config: ShellyGen1Config): Driver {
         );
         if (meterRes.ok) {
           const meter = (await meterRes.json()) as RawShellyGen1Meter;
-          activeWatts = meter.power;
+          // Some firmware returns an error object with no `power` field;
+          // fall back to 0 W rather than leak undefined into the Driver
+          // contract.
+          activeWatts = meter.power ?? 0;
         }
       } catch {
         // No meter — leave activeWatts at 0.

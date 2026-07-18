@@ -3,12 +3,12 @@
 // Bounds every device request so a vanished plug is detected in seconds
 // rather than waiting on the OS TCP retransmit backoff (~20s on Windows).
 
-// 2s catches real-world Wi-Fi jitter (observed: a Gen1 plug spiked to 899ms
-// during a network disruption and barely survived a 1s deadline) while still
-// detecting a genuinely dead plug quickly enough for a smart-home UI.
-const DEFAULT_TIMEOUT_MS = 2000;
+// 15s gives flaky Wi-Fi plenty of room to complete a request. Your network
+// may spike to 10–15s during disruptions; timing out sooner just produces
+// "signal aborted" noise and forces expensive retries.
+const DEFAULT_TIMEOUT_MS = 15000;
 
-/** fetch() wrapper that aborts after `timeoutMs` (default 2s). */
+/** fetch() wrapper that aborts after `timeoutMs` (default 15s). */
 export async function fetchWithTimeout(
   url: string,
   timeoutMs: number = DEFAULT_TIMEOUT_MS,

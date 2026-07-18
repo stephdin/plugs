@@ -70,7 +70,7 @@ function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
           </Stack>
         </div>
 
-        {plug.loading ? (
+        {plug.loading || plug.toggling ? (
           <Loader size="sm" m="sm" color="white" />
         ) : plug.readOnly ? (
           <Badge color={plug.on ? "blue.8" : "grey"} variant="light" size="lg">

@@ -103,7 +103,12 @@ app.use("/*", serveStatic({ root: distRoot }));
 // (if/when we add react-router) keeps working on a hard refresh.
 app.get("/*", (c) => c.html(Deno.readTextFileSync(distRoot + "/index.html")));
 
-// `started` fires once when the server is ready; logging earlier would print
-// before we know the port actually bound.
-Deno.serve(app.fetch);
-setTimeout(() => log("info", "server", "listening on :8000"), 0);
+// `onListen` fires once the socket is actually bound, so the logged port
+// matches reality even if 8000 was taken and Deno fell back to another port.
+Deno.serve(
+  {
+    onListen: ({ port }: { port: number }) =>
+      log("info", "server", `listening on :${port}`),
+  },
+  app.fetch,
+);
