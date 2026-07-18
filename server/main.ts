@@ -52,11 +52,22 @@ function createDriver(cfg: DriverConfig) {
 
 const plugsJsonUrl = new URL("./plugs.json", import.meta.url);
 const plugConfigs: PlugJson[] = (() => {
+  // stat first so we can distinguish "missing" from "is a directory"
   try {
+    const info = Deno.statSync(plugsJsonUrl);
+    if (info.isDirectory) {
+      log("warn", "server", "plugs.json is a directory — no plugs configured");
+      return [];
+    }
     return JSON.parse(Deno.readTextFileSync(plugsJsonUrl));
   } catch {
-    Deno.writeTextFileSync(plugsJsonUrl, "[]");
-    log("info", "server", "created empty plugs.json");
+    // file doesn't exist — try to create it
+    try {
+      Deno.writeTextFileSync(plugsJsonUrl, "[]");
+      log("info", "server", "created empty plugs.json");
+    } catch {
+      log("warn", "server", "cannot create plugs.json — no plugs configured");
+    }
     return [];
   }
 })();
