@@ -41,8 +41,9 @@ function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
     <Card
       withBorder
       padding="md"
-      radius="md"
+      radius="lg"
       opacity={plug.offline || plug.loading ? 0.6 : 1}
+      shadow="lg"
     >
       <Group justify="space-between" align="center" wrap="nowrap">
         <div
@@ -64,7 +65,7 @@ function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
               </Text>
             )}
 
-            <Text size="sm" c="dimmed">
+            <Text size="sm" c="dimmed" fw={600}>
               {statusText(plug)}
             </Text>
           </Stack>
@@ -79,6 +80,7 @@ function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
         ) : (
           <Switch
             size="md"
+            withThumbIndicator={false}
             checked={plug.on}
             disabled={plug.offline}
             onChange={onToggle}
