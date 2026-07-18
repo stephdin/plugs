@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AppShell,
   Badge,
@@ -97,6 +97,7 @@ export default function App() {
     Plug,
     "id" | "name" | "on"
   > | null>(null);
+  const confirmSnapshot = useRef<Pick<Plug, "id" | "name" | "on"> | null>(null);
 
   const totalWatts = plugs
     .filter((p) => p.on)
@@ -126,11 +127,9 @@ export default function App() {
                   plug={p}
                   onToggle={() => {
                     if (p.confirm) {
-                      setConfirmTarget({
-                        id: p.id,
-                        name: p.name,
-                        on: p.on,
-                      });
+                      const target = { id: p.id, name: p.name, on: p.on };
+                      confirmSnapshot.current = target;
+                      setConfirmTarget(target);
                     } else {
                       toggle(p.id);
                     }
@@ -145,20 +144,31 @@ export default function App() {
       <Modal
         opened={!!confirmTarget}
         onClose={() => setConfirmTarget(null)}
-        title={`${confirmTarget?.name ?? "Plug"} ${confirmTarget?.on ? "ausschalten" : "einschalten"}`}
+        title={`${
+          confirmTarget?.name ?? confirmSnapshot.current?.name ?? "Plug"
+        } ${(confirmTarget?.on ?? confirmSnapshot.current?.on) ? "ausschalten" : "einschalten"}`}
         centered
       >
         <Text size="sm">
           Bist du sicher, dass du{" "}
-          <strong>{confirmTarget?.name ?? "Plug"}</strong>{" "}
-          {confirmTarget?.on ? "ausschalten" : "einschalten"} möchtest?
+          <strong>
+            {confirmTarget?.name ?? confirmSnapshot.current?.name ?? "Plug"}
+          </strong>{" "}
+          {(confirmTarget?.on ?? confirmSnapshot.current?.on)
+            ? "ausschalten"
+            : "einschalten"}{" "}
+          möchtest?
         </Text>
         <Group justify="flex-end" mt="md">
           <Button variant="default" onClick={() => setConfirmTarget(null)}>
             Abbrechen
           </Button>
           <Button
-            color={confirmTarget?.on ? "red" : "blue"}
+            color={
+              (confirmTarget?.on ?? confirmSnapshot.current?.on)
+                ? "red"
+                : "blue"
+            }
             onClick={() => {
               if (confirmTarget) toggle(confirmTarget.id);
               setConfirmTarget(null);
