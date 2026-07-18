@@ -10,6 +10,7 @@
 
 import { Hono } from "hono";
 import { serveStatic } from "hono/deno";
+import { fromFileUrl } from "@std/path";
 
 import { createPlugRegistry } from "./lib/registry.ts";
 import { createShellyGen1Driver } from "./drivers/shelly_gen1.ts";
@@ -18,6 +19,11 @@ import type { ShellyGen1Config } from "./drivers/shelly_gen1.ts";
 import type { ShellyGen2Config } from "./drivers/shelly_gen2.ts";
 import { handleWebSocket } from "./lib/ws.ts";
 import { log } from "./lib/log.ts";
+
+// Resolve paths relative to this script so the server works
+// regardless of which directory it's launched from.
+const scriptDir = new URL(".", import.meta.url);
+const distRoot = fromFileUrl(new URL("../dist/", scriptDir));
 
 // Plug configuration loaded from plugs.json.
 
@@ -44,9 +50,16 @@ function createDriver(cfg: DriverConfig) {
   }
 }
 
-const plugConfigs: PlugJson[] = JSON.parse(
-  Deno.readTextFileSync(new URL("./plugs.json", import.meta.url)),
-);
+const plugsJsonUrl = new URL("./plugs.json", import.meta.url);
+const plugConfigs: PlugJson[] = (() => {
+  try {
+    return JSON.parse(Deno.readTextFileSync(plugsJsonUrl));
+  } catch {
+    Deno.writeTextFileSync(plugsJsonUrl, "[]");
+    log("info", "server", "created empty plugs.json");
+    return [];
+  }
+})();
 
 const registry = createPlugRegistry(
   plugConfigs.map((c) => ({
@@ -63,17 +76,21 @@ const app = new Hono();
 
 // Single WebSocket channel: server pushes state, client sends toggle intents.
 app.get("/ws", (c) => {
-  const { socket, response } = Deno.upgradeWebSocket(c.req.raw);
-  handleWebSocket(socket, registry);
-  return response;
+  try {
+    const { socket, response } = Deno.upgradeWebSocket(c.req.raw);
+    handleWebSocket(socket, registry);
+    return response;
+  } catch {
+    return c.text("Not a WebSocket request", 400);
+  }
 });
 
 // Static UI assets produced by `pnpm build`.
-app.use("/*", serveStatic({ root: "./dist" }));
+app.use("/*", serveStatic({ root: distRoot }));
 
 // SPA fallback: unknown GET routes render index.html so client-side routing
 // (if/when we add react-router) keeps working on a hard refresh.
-app.get("/*", (c) => c.html(Deno.readTextFileSync("./dist/index.html")));
+app.get("/*", (c) => c.html(Deno.readTextFileSync(distRoot + "/index.html")));
 
 // `started` fires once when the server is ready; logging earlier would print
 // before we know the port actually bound.

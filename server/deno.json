@@ -6,7 +6,8 @@
   },
   "imports": {
     "hono": "npm:hono@^4.6.16",
-    "hono/deno": "npm:hono@^4.6.16/deno"
+    "hono/deno": "npm:hono@^4.6.16/deno",
+    "@std/path": "jsr:@std/path@^1"
   },
   "compilerOptions": {
     "strict": true,

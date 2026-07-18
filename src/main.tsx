@@ -9,7 +9,7 @@ const theme = createTheme({/** Put your mantine theme override here */});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} defaultColorScheme="dark">
       <App />
     </MantineProvider>
   </StrictMode>,
