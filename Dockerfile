@@ -2,8 +2,8 @@
 FROM node:26-alpine AS builder
 WORKDIR /build
 
-# Install pnpm via corepack
-RUN corepack enable
+# Install pnpm (corepack is no longer bundled with Node >= 25)
+RUN npm install -g pnpm@12
 
 # Dependencies first (layer caching)
 COPY package.json pnpm-lock.yaml ./
@@ -19,7 +19,7 @@ RUN pnpm build  # → dist/
 # Stage 2 — Production dependencies only
 FROM node:26-alpine AS deps
 WORKDIR /app
-RUN corepack enable
+RUN npm install -g pnpm@12
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile --prod
 
