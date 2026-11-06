@@ -1,4 +1,4 @@
-// Shared protocol between the Plugs frontend and the Deno server.
+// Shared protocol between the Plugs frontend and the Node server.
 // This is the single source of truth for shared types.
 
 export type Plug = {
@@ -20,4 +20,7 @@ export type Plug = {
 export type ServerMessage = { type: "state"; plugs: Plug[] };
 
 // Client → Server
-export type ClientMessage = { type: "toggle"; id: string };
+// Carries the *desired* state rather than "flip it": if the plug changed in
+// the meantime (another tab, the physical button), a stale click can't
+// accidentally switch it the opposite way.
+export type ClientMessage = { type: "set"; id: string; on: boolean };

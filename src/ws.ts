@@ -1,6 +1,6 @@
-// React hook wrapping the single WebSocket connection to the Deno server.
+// React hook wrapping the single WebSocket connection to the Node server.
 // Re-connects automatically on close so dev HMR / Wi-Fi blips don't kill the
-// UI. Toggle commands are queued onto the current socket; state changes come
+// UI. Set commands are sent on the current socket; state changes come
 // in as `state` messages and surface as `plugs`.
 
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +11,7 @@ const RECONNECT_DELAY_MS = 2000;
 export type PlugsWebSocket = {
   plugs: Plug[];
   ready: boolean;
-  toggle: (id: string) => void;
+  setPlug: (id: string, on: boolean) => void;
 };
 
 export function usePlugsWebSocket(): PlugsWebSocket {
@@ -62,10 +62,10 @@ export function usePlugsWebSocket(): PlugsWebSocket {
     };
   }, []);
 
-  const toggle = (id: string) => {
-    const msg: ClientMessage = { type: "toggle", id };
+  const setPlug = (id: string, on: boolean) => {
+    const msg: ClientMessage = { type: "set", id, on };
     socketRef.current?.send(JSON.stringify(msg));
   };
 
-  return { plugs, ready, toggle };
+  return { plugs, ready, setPlug };
 }

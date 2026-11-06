@@ -1,19 +1,21 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  AppShell,
-  Badge,
-  Button,
-  Card,
-  Container,
-  Group,
-  Loader,
-  Modal,
-  ScrollArea,
-  Stack,
-  Switch,
-  Text,
-} from "@mantine/core";
-import { useLongPress } from "@mantine/hooks";
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
+import { useLongPress } from "@/hooks/use-long-press";
+import { cn } from "@/lib/utils";
 
 import type { Plug } from "../shared/types.ts";
 import { usePlugsWebSocket } from "./ws.ts";
@@ -29,155 +31,138 @@ function statusText(p: Plug): string {
   return "Aus";
 }
 
-function PlugCard({ plug, onToggle }: { plug: Plug; onToggle: () => void }) {
+function PlugCard({
+  plug,
+  onChange,
+}: {
+  plug: Plug;
+  onChange: (on: boolean) => void;
+}) {
   const longPressHandlers = useLongPress(
     () => {
       if (plug.host) window.open(`http://${plug.host}`, "_blank");
     },
-    { threshold: 600, cancelOnMove: true },
+    { threshold: 600 },
   );
 
   return (
     <Card
-      withBorder
-      padding="md"
-      radius="lg"
-      opacity={plug.offline || plug.loading ? 0.6 : 1}
-      shadow="lg"
+      className={cn(
+        "shadow-lg transition-opacity",
+        (plug.offline || plug.loading) && "opacity-60",
+      )}
     >
-      <Group justify="space-between" align="center" wrap="nowrap">
+      <CardContent className="flex items-center justify-between gap-3">
         <div
           {...(plug.host ? longPressHandlers : {})}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            cursor: "default",
-          }}
+          className="flex min-w-0 flex-1 cursor-default flex-col gap-1 select-none"
         >
-          <Stack gap={4}>
-            <Text size="md" fw={600} truncate>
-              {plug.name}
-            </Text>
+          <div className="truncate text-base font-semibold">{plug.name}</div>
 
-            {plug.description && (
-              <Text size="xs" c="dimmed" truncate>
-                {plug.description}
-              </Text>
-            )}
+          {plug.description && (
+            <div className="truncate text-xs text-muted-foreground/70">
+              {plug.description}
+            </div>
+          )}
 
-            <Text size="sm" c="dimmed" fw={600}>
-              {statusText(plug)}
-            </Text>
-          </Stack>
+          <div className="text-sm font-semibold text-muted-foreground/70">
+            {statusText(plug)}
+          </div>
         </div>
 
         {plug.loading || plug.toggling ? (
-          <Loader size="sm" m="sm" color="white" />
+          <Spinner className="m-2 size-5" />
         ) : plug.readOnly ? (
-          <Badge color={plug.on ? "blue.8" : "grey"} variant="light" size="lg">
+          <Badge variant={plug.on ? "default" : "secondary"}>
             {plug.on ? "An" : "Aus"}
           </Badge>
         ) : (
           <Switch
-            size="md"
-            withThumbIndicator={false}
             checked={plug.on}
             disabled={plug.offline}
-            onChange={onToggle}
+            onCheckedChange={onChange}
           />
         )}
-      </Group>
+      </CardContent>
     </Card>
   );
 }
 
+// `to` is the state the dialog text promises, captured when it opened. It's
+// sent as-is, so confirming can never switch the plug the other way.
+type ConfirmTarget = Pick<Plug, "id" | "name"> & { to: boolean };
+
 export default function App() {
-  const { plugs, toggle } = usePlugsWebSocket();
-  const [confirmTarget, setConfirmTarget] = useState<Pick<
-    Plug,
-    "id" | "name" | "on"
-  > | null>(null);
-  const confirmSnapshot = useRef<Pick<Plug, "id" | "name" | "on"> | null>(null);
+  const { plugs, setPlug } = usePlugsWebSocket();
+  // The target outlives `confirmOpen` so the dialog text doesn't flicker to
+  // a fallback while the close animation plays.
+  const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget | null>(
+    null,
+  );
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const totalWatts = plugs
     .filter((p) => p.on)
     .reduce((sum, p) => sum + p.activeWatts, 0);
 
+  const action = confirmTarget?.to ? "einschalten" : "ausschalten";
+
   return (
-    <AppShell header={{ height: 60 }} padding="sm">
-      <AppShell.Header p="md">
-        <Group justify="space-between" align="center" wrap="nowrap">
-          <Text size="lg" fw={700}>
-            Zuhause
-          </Text>
+    <div className="min-h-dvh bg-background text-foreground">
+      <header className="sticky top-0 z-10 flex h-15 items-center justify-between gap-4 border-b bg-background/80 px-4 backdrop-blur">
+        <h1 className="text-lg font-bold">Zuhause</h1>
+        <div className="truncate text-base font-semibold">
+          Gesamt {formatWatts(totalWatts)} W
+        </div>
+      </header>
 
-          <Text size="md" fw={600} truncate>
-            Gesamt {formatWatts(totalWatts)} W
-          </Text>
-        </Group>
-      </AppShell.Header>
-
-      <AppShell.Main>
-        <ScrollArea h="100%">
-          <Container size="xs" p={0}>
-            <Stack gap="sm">
-              {plugs.map((p) => (
-                <PlugCard
-                  key={p.id}
-                  plug={p}
-                  onToggle={() => {
-                    if (p.confirm) {
-                      const target = { id: p.id, name: p.name, on: p.on };
-                      confirmSnapshot.current = target;
-                      setConfirmTarget(target);
-                    } else {
-                      toggle(p.id);
-                    }
-                  }}
-                />
-              ))}
-            </Stack>
-          </Container>
-        </ScrollArea>
-      </AppShell.Main>
-
-      <Modal
-        opened={!!confirmTarget}
-        onClose={() => setConfirmTarget(null)}
-        title={`${
-          confirmTarget?.name ?? confirmSnapshot.current?.name ?? "Plug"
-        } ${(confirmTarget?.on ?? confirmSnapshot.current?.on) ? "ausschalten" : "einschalten"}`}
-        centered
-      >
-        <Text size="sm">
-          Bist du sicher, dass du{" "}
-          <strong>
-            {confirmTarget?.name ?? confirmSnapshot.current?.name ?? "Plug"}
-          </strong>{" "}
-          {(confirmTarget?.on ?? confirmSnapshot.current?.on)
-            ? "ausschalten"
-            : "einschalten"}{" "}
-          möchtest?
-        </Text>
-        <Group justify="flex-end" mt="md">
-          <Button variant="default" onClick={() => setConfirmTarget(null)}>
-            Abbrechen
-          </Button>
-          <Button
-            color={
-              (confirmTarget?.on ?? confirmSnapshot.current?.on)
-                ? "red"
-                : "blue"
-            }
-            onClick={() => {
-              if (confirmTarget) toggle(confirmTarget.id);
-              setConfirmTarget(null);
+      <main className="mx-auto flex max-w-xl flex-col gap-3 p-3">
+        {plugs.map((p) => (
+          <PlugCard
+            key={p.id}
+            plug={p}
+            onChange={(on) => {
+              if (p.confirm) {
+                setConfirmTarget({ id: p.id, name: p.name, to: on });
+                setConfirmOpen(true);
+              } else {
+                setPlug(p.id, on);
+              }
             }}
-          >
-            Bestätigen
-          </Button>
-        </Group>
-      </Modal>
-    </AppShell>
+          />
+        ))}
+      </main>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmTarget?.name ?? "Plug"} {action}
+            </DialogTitle>
+            <DialogDescription>
+              Bist du sicher, dass du{" "}
+              <strong className="text-foreground">
+                {confirmTarget?.name ?? "Plug"}
+              </strong>{" "}
+              {action} möchtest?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose render={<Button variant="outline" />}>
+              Abbrechen
+            </DialogClose>
+            <Button
+              variant={confirmTarget?.to ? "default" : "destructive"}
+              onClick={() => {
+                if (confirmTarget) setPlug(confirmTarget.id, confirmTarget.to);
+                setConfirmOpen(false);
+              }}
+            >
+              Bestätigen
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }

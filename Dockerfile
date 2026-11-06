@@ -1,5 +1,5 @@
 # Stage 1 — Build the Vite frontend
-FROM node:22-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /build
 
 # Install pnpm via corepack
@@ -10,25 +10,29 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Source code & config
-COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts index.html ./
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts index.html components.json ./
 COPY shared/ shared/
 COPY src/ src/
 
 RUN pnpm build  # → dist/
 
-# Stage 2 — Deno runtime
-FROM denoland/deno:alpine
+# Stage 2 — Production dependencies only
+FROM node:26-alpine AS deps
 WORKDIR /app
+RUN corepack enable
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
-# Built static assets
+# Stage 3 — Node runtime (runs the TypeScript server via type stripping)
+FROM node:26-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package.json ./
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /build/dist ./dist
-
-# Deno server source
+COPY shared/ ./shared/
 COPY server/ ./server/
 
-# Deno looks for deno.json in CWD to resolve import maps;
-# copy it here so bare specifiers like "hono" work.
-COPY server/deno.json ./deno.json
-
 EXPOSE 8000
-CMD ["deno", "run", "-A", "server/main.ts"]
+CMD ["node", "server/main.ts"]

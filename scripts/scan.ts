@@ -4,9 +4,11 @@
 // each local /24 subnet via HTTP. Supports any device family registered in the
 // `probes` table below — add a new entry to support a new family.
 //
-// Usage: deno run -A scripts/scan.ts
+// Usage: pnpm scan   (or: node scripts/scan.ts)
 //
 // Prints a JSON array you can paste directly into server/plugs.json.
+
+import { networkInterfaces } from "node:os";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -85,8 +87,8 @@ async function fetchJson(
 /** /24 prefixes of all non-loopback IPv4 interfaces. */
 function localSubnets(): string[] {
   const subnets = new Set<string>();
-  for (const iface of Deno.networkInterfaces()) {
-    if (iface.family !== "IPv4" || iface.address === "127.0.0.1") continue;
+  for (const iface of Object.values(networkInterfaces()).flat()) {
+    if (!iface || iface.family !== "IPv4" || iface.internal) continue;
     subnets.add(iface.address.split(".").slice(0, 3).join("."));
   }
   return [...subnets];
@@ -137,9 +139,7 @@ async function scanSubnet(
       );
     }
     const done = Math.min(i + concurrency, ips.length);
-    Deno.stdout.writeSync(
-      new TextEncoder().encode(`\r  ${done}/${ips.length} IPs scanned…`),
-    );
+    process.stdout.write(`\r  ${done}/${ips.length} IPs scanned…`);
   }
 
   console.log(""); // newline after progress
